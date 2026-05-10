@@ -26,22 +26,27 @@ export async function GET(request: NextRequest) {
   const dayEnd = new Date(date)
   dayEnd.setHours(23, 59, 59, 999)
 
-  const [bookings, blocked] = await Promise.all([
-    prisma.booking.findMany({
-      where: { startTime: { gte: dayStart, lte: dayEnd } },
-      select: { startTime: true, endTime: true },
-    }),
-    prisma.blockedTime.findMany({
-      where: { startTime: { gte: dayStart, lte: dayEnd } },
-      select: { startTime: true, endTime: true },
-    }),
-  ])
+  try {
+    const [bookings, blocked] = await Promise.all([
+      prisma.booking.findMany({
+        where: { startTime: { gte: dayStart, lte: dayEnd } },
+        select: { startTime: true, endTime: true },
+      }),
+      prisma.blockedTime.findMany({
+        where: { startTime: { gte: dayStart, lte: dayEnd } },
+        select: { startTime: true, endTime: true },
+      }),
+    ])
 
-  const occupied = [
-    ...bookings.map((b) => ({ startTime: new Date(b.startTime), endTime: new Date(b.endTime) })),
-    ...blocked.map((b) => ({ startTime: new Date(b.startTime), endTime: new Date(b.endTime) })),
-  ]
+    const occupied = [
+      ...bookings.map((b) => ({ startTime: new Date(b.startTime), endTime: new Date(b.endTime) })),
+      ...blocked.map((b) => ({ startTime: new Date(b.startTime), endTime: new Date(b.endTime) })),
+    ]
 
-  const slots = getAvailableSlots(date, occupied, duration)
-  return Response.json(slots)
+    const slots = getAvailableSlots(date, occupied, duration)
+    return Response.json(slots)
+  } catch (err) {
+    console.error('[slots] Gagnagrunnsvillu:', err)
+    return Response.json({ error: 'Gat ekki sótt tíma' }, { status: 500 })
+  }
 }

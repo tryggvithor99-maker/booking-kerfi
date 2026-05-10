@@ -21,17 +21,25 @@ export default function TimeSlotPicker({
 }: Props) {
   const [slots, setSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    const dateStr = date.toISOString().split('T')[0]
+    setFetchError(false)
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     fetch(`/api/slots?date=${dateStr}&duration=${duration}`)
-      .then((r) => r.json())
-      .then((data) => {
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((data: TimeSlot[]) => {
         setSlots(data)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {
+        setFetchError(true)
+        setLoading(false)
+      })
   }, [date, duration])
 
   return (
@@ -58,6 +66,8 @@ export default function TimeSlotPicker({
       <label className="block text-sm font-medium text-gray-700 mb-2">Veldu tíma</label>
       {loading ? (
         <div className="text-gray-400 text-sm py-4">Hleður tíma...</div>
+      ) : fetchError ? (
+        <div className="text-red-500 text-sm py-4">Villa við að sækja tíma. Reyndu aftur.</div>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {slots.map((slot) => (
